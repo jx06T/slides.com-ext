@@ -1,152 +1,262 @@
-import { useState, useEffect } from 'react';
-import { Search, X, Code, FileText, ArrowRight } from 'lucide-react';
-import Fuse from 'fuse.js';
-
-import { extractSlides, SlideIndex } from '@/utils/slideExtractor';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Search, X, Code, FileText, CornerUpLeft } from 'lucide-react';
+import { SlideIndex } from '@/utils/slideExtractor';
+import { useSlideSearch } from '@/hooks/useSlideSearch';
+import { HighlightedText } from '@/components/HighlightedText';
 
 export default function SearchPalette() {
-    const [isOpen, setIsOpen] = useState(true);
-    const [query, setQuery] = useState('api');
+    const [isOpen, setIsOpen] = useState(false);
+    const [query, setQuery] = useState('');
 
-    const [slides, setSlides] = useState<SlideIndex[]>([]);
-    const [results, setResults] = useState<SlideIndex[]>([]);
+    const { results } = useSlideSearch(isOpen, query);
 
-    useEffect(() => {
-        const handleKeyDown = (e: KeyboardEvent) => {
-            if ((e.metaKey || e.ctrlKey) && e.key === 'k') {
-                e.preventDefault();
-                setIsOpen((prev) => !prev);
-            }
-            if (e.key === 'Escape') {
-                setIsOpen(false);
-            }
-        };
-        window.addEventListener('keydown', handleKeyDown);
-        return () => window.removeEventListener('keydown', handleKeyDown);
-    }, []);
+    const [activeIndex, setActiveIndex] = useState(0);
+    const resultContainerRef = useRef<HTMLDivElement>(null);
+    const inputRef = useRef<HTMLInputElement>(null);
 
-    useEffect(() => {
-        if (isOpen) {
-            const data = extractSlides();
-            // console.log("爬到的投影片:", data);
-            setSlides(data);
+    const [prevHash, setPrevHash] = useState<string>('');
+
+    // 🔥 新增：記錄上一次跳轉的 ID，用來判斷是否為「第二次點擊」
+    const [lastJumpedId, setLastJumpedId] = useState<string | null>(null);
+    const [isFocused, setIsFocused] = useState(false);
+
+    // === Helper Functions ===
+
+    const isTriggerKey = (e: KeyboardEvent | React.KeyboardEvent) =>
+        (e.metaKey || e.ctrlKey) && e.key === 'k';
+
+    const openPalette = useCallback(() => {
+        if (!isOpen) {
+            setPrevHash(window.location.hash || "#0/0");
+            setIsOpen(true);
         }
+        setTimeout(() => {
+            inputRef.current?.focus();
+            inputRef.current?.select();
+        }, 10);
     }, [isOpen]);
 
-    // 設定 Fuse 搜尋引擎
-    const fuse = useMemo(() => {
-        return new Fuse(slides, {
-            keys: ['content', 'title'], // 搜尋內容和標題
-            threshold: 0.3,             // 模糊程度 (0=精準, 1=超模糊)
-            ignoreLocation: true,       // 全文搜尋，不限制位置
-        });
-    }, [slides]);
+    const closePalette = useCallback(() => {
+        setIsOpen(false);
+        setLastJumpedId(null); // 關閉時重置
+    }, []);
 
-    // 當 Query 改變時執行搜尋
+    // === 1. 全域監聽 ===
     useEffect(() => {
-        if (!query.trim()) {
-            setResults([]);
+        const handleGlobalKeyDown = (e: KeyboardEvent) => {
+            if (isTriggerKey(e)) {
+                e.preventDefault();
+                openPalette();
+            } else if (e.key === 'Escape' && isOpen) {
+                closePalette();
+            }
+        };
+        window.addEventListener('keydown', handleGlobalKeyDown);
+        return () => window.removeEventListener('keydown', handleGlobalKeyDown);
+    }, [isOpen, openPalette, closePalette]);
+
+    // 當搜尋關鍵字改變時，重置選中狀態和跳轉紀錄
+    useEffect(() => {
+        setActiveIndex(0);
+        setLastJumpedId(null);
+    }, [query]);
+
+    // === 2. 動作處理 ===
+
+    const handleJump = (slide: SlideIndex, newTab = false) => {
+        const targetHash = `/${slide.h}/${slide.v}/21`;
+
+        if (newTab) {
+            const baseUrl = window.location.href.split('#')[0];
+            window.open(`${baseUrl}#${targetHash}`, '_blank');
             return;
         }
-        const searchResults = fuse.search(query);
-        setResults(searchResults.map(res => res.item).slice(0, 30)); // 只顯示前 10 筆
-    }, [query, fuse]);
 
-    // 跳轉功能
-    const jumpToSlide = (h: number, v: number) => {
-        window.location.hash = `/${h}/${v}/21`;
+        // 🔥 核心邏輯：如果是第二次點擊同一張投影片
+        if (lastJumpedId === slide.id) {
+            // 1. 讓搜尋框失焦
+            inputRef.current?.blur();
+            // 2. 將焦點還給瀏覽器主體 (Reveal.js 通常監聽 body)
+            window.focus();
+            document.body.focus();
+            // 3. (可選) 可以在這裡做個 Toast 提示 "Focus Slides"
+            return;
+        }
+
+        // === 第一次點擊：執行跳轉 ===
+        if (window.location.hash !== `#${targetHash}` && lastJumpedId !== slide.id) {
+            if (!prevHash) setPrevHash(window.location.hash);
+            window.location.hash = targetHash;
+            window.postMessage({
+                type: 'EXTENSION_JUMP_TO_SLIDE',
+                h: slide.h,
+                v: slide.v
+            }, '*');
+            inputRef.current?.focus();
+            inputRef.current?.select();
+        }
+
+        // 記錄這次跳轉的 ID
+        setLastJumpedId(slide.id);
     };
 
+    const handleBack = () => {
+        if (prevHash) {
+            window.location.hash = prevHash;
+            setLastJumpedId(null); // 返回後重置狀態
+        }
+    };
 
+    // === 3. 輸入框監聽 ===
+    const handleInputKeyDown = (e: React.KeyboardEvent) => {
+        if (isTriggerKey(e)) {
+            e.preventDefault();
+            e.stopPropagation();
+            inputRef.current?.focus();
+            inputRef.current?.select();
+            return;
+        }
+
+        if (e.key === 'Escape') {
+            e.stopPropagation();
+            closePalette();
+            return;
+        }
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            e.stopPropagation();
+            setActiveIndex(prev => (prev < results.length - 1 ? prev + 1 : prev));
+        }
+        else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            e.stopPropagation();
+            setActiveIndex(prev => (prev > 0 ? prev - 1 : 0));
+        }
+        else if (e.key === 'Enter') {
+            e.preventDefault();
+            e.stopPropagation();
+            if (results[activeIndex]) {
+                handleJump(results[activeIndex], e.ctrlKey || e.metaKey);
+            }
+        }
+        else {
+            e.stopPropagation();
+        }
+    };
+
+    // 自動滾動
+    useEffect(() => {
+        if (resultContainerRef.current) {
+            const activeEl = resultContainerRef.current.children[activeIndex] as HTMLElement;
+            activeEl?.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        }
+    }, [activeIndex]);
+
+
+    // === 4. 渲染 ===
 
     if (!isOpen) return (
-        <div className=' bg-white/80 rounded-xl fixed top-[40vh] right-0 w-10 h-10 z-999999  shadow-2xl border-purple-400 border animate-out fade-out zoom-out-95 duration-200'>
-            <button className='w-full h-full pt-0 pl-2  ' onClick={() => setIsOpen(true)}>
-                <Search className="w-6 h-6 text-gray-400 mr-3 inline-block" />
+        <div className='w-10 h-10 hover:w-12 fixed top-[30vh] right-0 z-2147483647 animate-out zoom-out-95 fade-out duration-200'>
+            <button
+                className='w-full h-full bg-white/70 backdrop-blur-md hover:bg-white shadow-xl rounded-l-lg flex items-center justify-center transition-all hover:w-12 group'
+                onClick={openPalette}
+                title="Search Slides (Cmd+K)"
+            >
+                <Search className="w-5 h-5 text-gray-500 group-hover:text-purple-600 transition-colors" />
             </button>
         </div>
     );
 
     return (
-        <div className=" bg-white rounded-xl shadow-2xl overflow-hidden animate-in fade-in zoom-in-95 duration-200  fixed top-20 right-6 h-[80vh] w-[360px] z-999999">
-            <div className=' grid grid-rows-[3rem_1fr_2rem] h-full'>
-                <div className="h-full  flex items-center px-4 py-3 border-b border-gray-100">
-                    <Search className="w-5 h-5 text-gray-400 mr-3" />
-                    <input
-                        type="text"
-                        className="flex-1 text-lg outline-none text-gray-700 placeholder:text-gray-400 bg-transparent"
-                        placeholder="搜尋投影片內容..."
-                        value={query}
-                        onChange={(e) => setQuery(e.target.value)}
-                        autoFocus
+        <div className="fixed right-2 top-[12vh] z-2147483647 w-[360px] h-[80vh] flex flex-col overflow-hidden animate-in fade-in zoom-in-95 transition-all bg-white rounded-xl shadow-2xl ">
+            <div className="flex items-center px-4 py-3 border-b border-gray-100 shrink-0 gap-2 bg-white z-10">
+                <Search className={`w-5 h-5 ${isFocused ? "text-purple-400" : "text-gray-400"} `} />
+                <input
+                    ref={inputRef}
+                    type="text"
+                    className="flex-1 text-lg outline-none text-gray-700 placeholder:text-gray-400 bg-transparent min-w-0"
+                    placeholder="Search..."
+                    value={query}
+                    onChange={(e) => setQuery(e.target.value)}
+                    autoFocus
+                    onKeyDown={handleInputKeyDown}
+                    onKeyUp={(e) => e.stopPropagation()}
+                />
 
-                        onKeyDown={(e) => {
-                            // 1. 允許 Escape 鍵往上傳 (因為我們要讓外層的 window listener 收到並關閉視窗)
-                            if (e.key === 'Escape') {
-                                return;
-                            }
-
-                            // 2. 允許 Enter 鍵 (如果你有要做 Enter 選擇功能的話，也可以不擋，或是在這邊處理掉)
-                            if (e.key === 'Enter') {
-                                // jumpToSlide(...);
-                                // e.stopPropagation(); // 視需求決定要不要擋
-                                return;
-                            }
-
-                            // 3. 殺死其他所有按鍵事件 (Space, F, S, 方向鍵...)
-                            e.stopPropagation();
-                            e.nativeEvent.stopImmediatePropagation();
-                            // 保險起見，有些舊套件監聽 keyup/keypress，也可以考慮加
-                        }}
-
-                        onKeyUp={(e) => e.stopPropagation()}
-                    />
-                    <button onClick={() => setIsOpen(false)} className="p-1 hover:bg-gray-100 rounded">
-                        <X className="w-5 h-5 text-gray-400" />
+                {prevHash && (
+                    <button onClick={handleBack} title="Go Back" className="p-1.5 hover:bg-gray-100 rounded text-purple-500 hover:text-purple-700">
+                        <CornerUpLeft className="w-4 h-4" />
                     </button>
-                </div>
+                )}
 
-                <div className="p-4  text-gray-500 text-center overflow-y-auto overscroll-contain" >
-                    {results.length === 0 && (
-                        <div className="text-center py-8 text-gray-400">{query ? "找不到相關內容" : "輸入關鍵字搜尋"}</div>
-                    )}
-
-                    {results.map((slide) => (
-                        <div
-                            key={slide.id}
-                            onClick={() => jumpToSlide(slide.h, slide.v)}
-                            className="group flex flex-col p-3 mb-2 bg-white rounded-lg border border-gray-100 hover:border-purple-400 hover:shadow-md cursor-pointer transition-all"
-                        >
-                            <div className="flex items-center gap-2 justify-between">
-                                <div className="">
-                                    {slide.type === 'code' ? (
-                                        <Code className="w-4 h-4 /text-purple-500" />
-                                    ) : (
-                                        <FileText className="w-4 h-4 /text-blue-500" />
-                                    )}
-                                </div>
-                                <span className="font-semibold w-full text-start text-gray-800 text-sm truncate">
-                                    {slide.title}
-                                </span>
-                                <span className="text-xs text-gray-400 bg-gray-100 px-2 py-0.5 rounded text-nowrap">
-                                    Page {slide.h}-{slide.v}
-                                </span>
-                            </div>
-
-                            {/* 顯示部分內容預覽 (截斷) */}
-                            <div className="text-xs text-gray-500 line-clamp-3 pl-6 text-start mt-1.5">
-                                {slide.content}
-                            </div>
-                        </div>
-                    ))}
-                </div>
-
-                <div className=" h-full px-4 py-2 bg-slate-50 border-t text-xs text-gray-400 flex justify-between">
-                    <span>找到 {results.length} 筆結果</span>
-                    <span>Enter 選擇 / Esc 關閉</span>
-                </div>
-
+                <button onClick={closePalette} className="p-1.5 hover:bg-gray-100 rounded text-gray-400 hover:text-gray-600">
+                    <X className="w-5 h-5" />
+                </button>
             </div>
+
+            <div
+                ref={resultContainerRef}
+                className="flex-1 overflow-y-auto p-2 bg-slate-50 space-y-2 overscroll-contain"
+            >
+                {results.length === 0 && (
+                    <div className="text-center py-10 text-gray-400 flex flex-col items-center gap-2">
+                        <Search className="w-8 h-8 opacity-20" />
+                        <span>{query ? "No results" : "Type to search"}</span>
+                    </div>
+                )}
+
+                {results.map((slide, index) => (
+                    <div
+                        key={slide.id}
+                        onClick={(e) => {
+                            handleJump(slide, e.ctrlKey || e.metaKey)
+                        }}
+                        onMouseEnter={() => setActiveIndex(index)}
+                        className={`
+                                group flex flex-col p-3 rounded-lg border cursor-pointer transition-all relative
+                                ${index === activeIndex
+                                ? 'bg-white border-purple-400 shadow-md ring-1 ring-purple-100 z-10'
+                                : 'bg-white border-gray-100 hover:border-purple-200'
+                            }
+                            `}
+                    >
+                        <div className="flex items-center gap-2 justify-between mb-1.5">
+                            <div className="flex items-center gap-2 min-w-0 flex-1">
+                                {slide.type === 'code' ? (
+                                    <Code className="w-3.5 h-3.5 text-pink-500 shrink-0" />
+                                ) : (
+                                    <FileText className="w-3.5 h-3.5 text-blue-500 shrink-0" />
+                                )}
+                                <h4 className="font-semibold text-gray-800 text-sm truncate w-full">
+                                    <HighlightedText text={slide.title} highlight={query} />
+                                </h4>
+                            </div>
+                            <span className="text-[10px] font-mono text-gray-400 bg-gray-100 px-1.5 py-0.5 rounded shrink-0">
+                                {/* 🔥 視覺提示：如果這張已經跳過了，可以顯示個小 icon 或顏色變化，這裡暫時維持原樣 */}
+                                {slide.h}-{slide.v}
+                            </span>
+                        </div>
+
+                        <div className="text-xs text-gray-500 line-clamp-2 pl-5.5 leading-relaxed">
+                            <HighlightedText text={slide.content} highlight={query} />
+                        </div>
+                    </div>
+                ))}
+            </div>
+
+            <div className="px-4 py-2 bg-white border-t text-[10px] text-gray-400 flex justify-between shrink-0 select-none">
+                <div className="flex gap-2">
+                    {/* <span><kbd className="font-sans border px-1 rounded bg-gray-50">↑↓</kbd> Navigate</span> */}
+                    {/* <span><kbd className="border px-1 rounded bg-gray-50">Enter</kbd> Jump</span> */}
+                    <span><kbd className="border px-1 rounded bg-gray-50">Ctrl+Enter</kbd> New Tab</span>
+                    {/* 🔥 提示使用者可以按兩次 */}
+                    <span><kbd className="border px-1 rounded bg-gray-50">2x Enter</kbd> Focus</span>
+                </div>
+                <span>{prevHash}</span>
+                <span>{results.length} found</span>
+            </div>
+
         </div>
     );
 }
