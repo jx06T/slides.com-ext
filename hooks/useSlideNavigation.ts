@@ -20,19 +20,20 @@ export function useSlideNavigation() {
 
     const [pos, setPos] = useState<SlidePosition>(getPos());
 
+    const handleUpdate = () => {
+        // 微小的延遲確保 URL 已經變更完成
+        setTimeout(() => {
+            const newPos = getPos();
+            // 簡單的 diff 檢查，避免重複 render
+            setPos(prev => (
+                prev.h === newPos.h && prev.v === newPos.v
+                    ? prev
+                    : newPos
+            ));
+        }, 0);
+    };
+
     useEffect(() => {
-        const handleUpdate = () => {
-            // 微小的延遲確保 URL 已經變更完成
-            setTimeout(() => {
-                const newPos = getPos();
-                // 簡單的 diff 檢查，避免重複 render
-                setPos(prev => (
-                    prev.h === newPos.h && prev.v === newPos.v
-                        ? prev
-                        : newPos
-                ));
-            }, 0);
-        };
 
         // 1. 優先使用現代的 Navigation API
         if ((window as any).navigation) {
@@ -50,7 +51,7 @@ export function useSlideNavigation() {
             window.removeEventListener('hashchange', handleUpdate);
             window.removeEventListener('popstate', handleUpdate);
         };
-    }, []);
+    }, [handleUpdate]);
 
     return pos;
 }

@@ -10,15 +10,20 @@ export default function BookmarkModal() {
     const [isOpen, setIsOpen] = useState(false);
     const [selectedCol, setSelectedCol] = useState('default');
 
-    // 當 currentBookmark 改變時，更新選中的分類 (如果是編輯模式)
+    // 1. 初始化與更新 selectedCol (保持不變)
     useEffect(() => {
         if (currentBookmark) {
             setSelectedCol(currentBookmark.collectionId);
-        } else {
-            // 如果是新收藏，預設選第一個
-            if (collections.length > 0) setSelectedCol(collections[0].id);
+        } else if (collections.length > 0) {
+            setSelectedCol(collections[0].id);
         }
     }, [currentBookmark, collections]);
+
+    // 當 h 或 v 改變時，代表使用者切換了投影片，強制關閉 Modal
+    useEffect(() => {
+        setIsOpen(false);
+    }, [currentBookmark]);
+
 
     const handleSave = async () => {
         await saveBookmark(selectedCol);

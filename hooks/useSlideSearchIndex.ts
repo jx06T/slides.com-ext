@@ -14,7 +14,6 @@ export function useSlideSearchIndex() {
         }));
 
         setSlides(formatted);
-        console.log(formatted)
     };
     useEffect(() => {
         refresh();

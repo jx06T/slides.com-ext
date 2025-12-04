@@ -6,7 +6,7 @@ export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
     name: "Slides Tools",
-    version: "1.0.0",
+    version: "1.0.1",
     permissions: ['storage'],
     host_permissions: [
       "https://slides.com/*"

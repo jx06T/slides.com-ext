@@ -6,6 +6,8 @@ import {
     MoreVertical, Edit2, Check, X, Tag
 } from 'lucide-react';
 
+import logo from '@/assets/logo.png'; // 透過 import
+
 export default function App() {
     const [collections, setCollections] = useState<Collection[]>([]);
     const [bookmarks, setBookmarks] = useState<Bookmark[]>([]);
@@ -100,7 +102,10 @@ export default function App() {
             {/* === Left Sidebar: Collections === */}
             <div className="w-64 bg-white border-r border-slate-200 flex flex-col">
                 <div className="p-4 border-b border-slate-100 flex items-center gap-2">
-                    <div className="w-8 h-8 bg-purple-600 rounded-lg flex items-center justify-center text-white font-bold">S</div>
+                    <div className="w-8 h-8 bg-purple-600 overflow-hidden rounded-lg flex items-center justify-center text-white font-bold">
+                        {/* S */}
+                        <img src={logo} alt="logo" />
+                    </div>
                     <h1 className="font-bold text-lg">Slides Manager</h1>
                 </div>
 
@@ -188,9 +193,11 @@ export default function App() {
 
                                     {/* 上半部：視覺識別區 (縮圖概念) */}
                                     <div className="h-24 bg-linear-to-br from-slate-100 to-slate-200 p-4 flex flex-col justify-between relative">
+                                        <div className=' absolute -top-17 -left-10 w-24 h-24 rotate-60 ' style={{ backgroundColor: col?.color }}></div>
+
                                         {/* 分類標籤 */}
                                         <div className="flex justify-between items-start">
-                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/80 backdrop-blur" style={{ color: col?.color }}>
+                                            <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-white/70 backdrop-blur-xs"  >
                                                 {col?.name}
                                             </span>
 
@@ -200,7 +207,7 @@ export default function App() {
 
                                         {/* 簡報來源標題 (小字) */}
                                         <div className="text-xs text-slate-500 truncate flex items-center gap-1">
-                                            <div className="w-2 h-2 rounded-full bg-slate-400"></div>
+                                            <div className="w-2 h-2 rounded-full bg-slate-400" style={{ backgroundColor: col?.color }}></div>
                                             {bm.presentationTitle}
 
                                             {/* 頁碼標記 */}
@@ -212,10 +219,11 @@ export default function App() {
                                         {/* 刪除按鈕 (Hover 顯示) */}
                                         <button
                                             onClick={(e) => { e.stopPropagation(); handleDeleteBookmark(bm.id); }}
-                                            className="absolute top-2 right-2 p-1.5 bg-white/80 rounded-full text-red-400 hover:text-red-600 hover:bg-white opacity-0 group-hover:opacity-100 transition-all"
+                                            className="absolute top-2 right-2 p-1.5 bg-white/80 rounded-full text-red-600 hover:text-red-500 hover:bg-white opacity-0 group-hover:opacity-100 transition-all"
                                         >
                                             <Trash2 className="w-4 h-4" />
                                         </button>
+
                                     </div>
 
                                     {/* 下半部：內容區 */}
@@ -336,7 +344,7 @@ function CollectionModal({ initialData, onSave, onDelete, onClose }: any) {
 
                 <div className="flex justify-between mt-6 pt-4 border-t border-slate-100">
                     {onDelete && initialData.id !== 'default' ? (
-                        <button onClick={onDelete} className="text-red-500 text-sm hover:underline">Delete</button>
+                        <button onClick={onDelete} className="text-red-600 text-sm hover:underline">Delete</button>
                     ) : <div></div>}
 
                     <div className="flex gap-2">

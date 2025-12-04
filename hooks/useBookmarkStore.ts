@@ -13,7 +13,8 @@ export function useBookmarkStore() {
     const checkStatus = useCallback(async (currentH: number, currentV: number) => {
         const currentId = getBookmarkId(currentH, currentV);
         const allBookmarks = await bookmarksStore.getValue();
-        const found = allBookmarks.find(b => b.id === currentId);
+        const found = allBookmarks.find(b => b.bookmarkId === currentId);
+
         setCurrentBookmark(found || null);
     }, []);
 
