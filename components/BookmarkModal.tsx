@@ -1,11 +1,11 @@
 // components/BookmarkModal.tsx
 import { useState, useEffect } from 'react';
 import { Bookmark, Check, Trash2, X } from 'lucide-react';
-import { useBookmark } from '@/hooks/useBookmark';
+import { useBookmarkStore } from '@/hooks/useBookmarkStore';
 import { browser } from 'wxt/browser';
 
 export default function BookmarkModal() {
-    const { collections, currentBookmark, saveBookmark, removeBookmark } = useBookmark();
+    const { collections, currentBookmark, saveBookmark, removeBookmark } = useBookmarkStore();
 
     const [isOpen, setIsOpen] = useState(false);
     const [selectedCol, setSelectedCol] = useState('default');

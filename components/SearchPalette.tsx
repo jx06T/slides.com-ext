@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { Search, X, Code, FileText, CornerUpLeft, Bookmark, ExternalLink } from 'lucide-react';
-import { useLocalSlides } from '@/hooks/useLocalSlides';
-import { useBookmarkSlides } from '@/hooks/useBookmarkSlides';
+import { useSlideSearchIndex } from '@/hooks/useSlideSearchIndex';
+import { useBookmarkSearchIndex } from '@/hooks/useBookmarkSearchIndex';
 import { useSearchEngine } from '@/hooks/useSearchEngine';
 import { SearchResultItem } from '@/types/data';
 import { HighlightedText } from '@/components/HighlightedText';
@@ -11,8 +11,8 @@ export default function SearchPalette() {
     const [isOpen, setIsOpen] = useState(false);
     const [query, setQuery] = useState('');
 
-    const localSlides = useLocalSlides(isOpen);
-    const bookmarkSlides = useBookmarkSlides(isOpen);
+    const { slides: localSlides, refresh } = useSlideSearchIndex();
+    const bookmarkSlides = useBookmarkSearchIndex(isOpen);
 
     const searchPool = useMemo(() => {
         return [...localSlides, ...bookmarkSlides];
@@ -26,9 +26,9 @@ export default function SearchPalette() {
 
     const [prevHash, setPrevHash] = useState<string>('');
     const [isFocused, setIsFocused] = useState(false);
-    
+
     // 追蹤當前投影片位置
-    const currentPos = useSlideNavigation(); 
+    const currentPos = useSlideNavigation();
 
     const focusInput = useCallback(() => {
         setTimeout(() => {
@@ -81,7 +81,7 @@ export default function SearchPalette() {
 
     const handleJump = (item: SearchResultItem, newTab = false) => {
         if (item.source === 'bookmark') {
-            window.open(item.bookmarkData?.url, '_blank');
+            window.open(item.url, '_blank');
             return;
         }
 
@@ -218,7 +218,6 @@ export default function SearchPalette() {
                 {results.map((item, index) => {
                     const isBookmark = item.source === 'bookmark';
                     const isCurrentPage = item.source === 'local' && item.h === currentPos.h && item.v === currentPos.v;
-
                     return (
                         <div
                             key={item.id}
@@ -254,19 +253,18 @@ export default function SearchPalette() {
                                     </h4>
                                 </div>
 
-                                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 ${
-                                    isBookmark
-                                        ? 'bg-yellow-100 text-yellow-700'
-                                        : isCurrentPage
-                                            ? "text-gray-500 bg-purple-100"
-                                            : "text-gray-400 bg-gray-100"
+                                <span className={`text-[10px] font-mono px-1.5 py-0.5 rounded shrink-0 flex items-center gap-1 ${isBookmark
+                                    ? 'bg-yellow-100 text-yellow-700'
+                                    : isCurrentPage
+                                        ? "text-gray-500 bg-purple-100"
+                                        : "text-gray-400 bg-gray-100"
                                     }`}>
                                     {isBookmark ? <ExternalLink className="w-3 h-3 my-1 mx-2 inline" /> : item.slideLabel}
                                 </span>
                             </div>
 
                             <div className="text-xs text-gray-500 line-clamp-2 pl-5.5 leading-relaxed">
-                                <HighlightedText text={item.content} highlight={query} />
+                                <HighlightedText text={item.searchContent} highlight={query} />
                             </div>
                         </div>
                     );

@@ -1,4 +1,3 @@
-// entrypoints/dashboard/App.tsx
 import { useState, useEffect, useMemo } from 'react';
 import { collectionsStore, bookmarksStore, generateId } from '@/utils/storage';
 import { Collection, Bookmark } from '@/types/data';
@@ -80,7 +79,7 @@ export default function App() {
     // --- Derived State ---
 
     const filteredBookmarks = useMemo(() => {
-        let list = activeColId === 'all'
+        let list: Bookmark[] = (activeColId === 'all')
             ? bookmarks
             : bookmarks.filter(b => b.collectionId === activeColId);
 
@@ -88,7 +87,7 @@ export default function App() {
             const q = searchQuery.toLowerCase();
             list = list.filter(b =>
                 b.title.toLowerCase().includes(q) ||
-                b.contentSnippet.toLowerCase().includes(q) ||
+                b.searchContent.toLowerCase().includes(q) ||
                 b.presentationTitle.toLowerCase().includes(q)
             );
         }
@@ -228,7 +227,7 @@ export default function App() {
 
                                         {/* 內容摘要 */}
                                         <p className="text-xs text-slate-500 line-clamp-4 mb-4 flex-1">
-                                            {bm.contentSnippet || "No text content detected..."}
+                                            {bm.searchContent || "No text content detected..."}
                                         </p>
 
                                         {/* 跳轉按鈕 */}

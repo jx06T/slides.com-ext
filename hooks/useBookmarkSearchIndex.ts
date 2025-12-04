@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react';
 import { bookmarksStore, collectionsStore, getCurrentPresentationId } from '@/utils/storage';
 import { SearchResultItem } from '@/types/data';
 
-export function useBookmarkSlides(isOpen: boolean) {
+export function useBookmarkSearchIndex(isOpen: boolean) {
     const [bookmarks, setBookmarks] = useState<SearchResultItem[]>([]);
 
     useEffect(() => {
@@ -21,17 +21,10 @@ export function useBookmarkSlides(isOpen: boolean) {
             // 2. 篩選與格式化
             const formatted: SearchResultItem[] = allBookmarks
                 .filter(b => allowedColIds.has(b.collectionId)) // 規則：分類允許
-                .filter(b => b.presentationId !== currentDeckId) // 規則：排除當前簡報(避免重複)
+                .filter(b => b.presentationId !== currentDeckId) // 規則：排除當前簡報
                 .map(b => ({
-                    id: b.id,
                     source: 'bookmark',
-                    title: b.title,
-                    content: b.contentSnippet,
-                    slideLabel: b.slideLabel || '?',
-                    presentationTitle: b.presentationTitle,
-                    bookmarkData: b,
-                    type: 'saved',
-                    collectionId: b.collectionId
+                    ...b
                 }));
 
             setBookmarks(formatted);
