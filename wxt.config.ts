@@ -5,8 +5,9 @@ import tailwindcss from '@tailwindcss/vite';
 export default defineConfig({
   modules: ['@wxt-dev/module-react'],
   manifest: {
-    name: "Slides.com Power Tools",
-    permissions: ['storage'], 
+    name: "Slides Tools",
+    version: "1.0.0",
+    permissions: ['storage'],
     host_permissions: [
       "https://slides.com/*"
     ],

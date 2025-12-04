@@ -32,9 +32,9 @@ function getCodeTextByRegex(element: HTMLElement): string {
 
     html = html
         .replace(/<\/tr>/gi, '\n')      // 表格行結尾
-        // .replace(/<\/div>/gi, '\n')     // div 結尾
-        // .replace(/<\/p>/gi, '\n')       // p 結尾
-        // .replace(/<br\s*\/?>/gi, '\n'); // br 標籤
+    // .replace(/<\/div>/gi, '\n')     // div 結尾
+    // .replace(/<\/p>/gi, '\n')       // p 結尾
+    // .replace(/<br\s*\/?>/gi, '\n'); // br 標籤
 
     // 4. 建立一個暫存元素來過濾掉剩下的 HTML 標籤 (只取純文字)
     const temp = document.createElement('div');
@@ -61,19 +61,52 @@ function parseSlideElement(el: HTMLElement, h: number, v: number): SlideIndex {
         // A. 處理程式碼 (Code)
         const codeEl = element.querySelector('pre code, pre');
         if (codeEl) {
-
             let lang = '';
-            codeEl.classList.forEach(cls => {
-                if (cls !== 'hljs' && cls !== 'sl-block-content') {
+            let content = '';
+
+            const codeCodeEl = element.querySelector('code');
+            // 掃描 classList，排除掉系統保留字
+            if (codeCodeEl) {
+                codeCodeEl.classList.forEach(cls => {
+                    // 排除 highlight.js 基礎 class 和區塊 class
+                    if (['hljs', 'sl-block-content', 'notranslate'].includes(cls)) return;
+
+                    // 剩下的通常就是語言 (如 "xml", "javascript", "python")
+                    // 有些會帶前綴 "language-"
                     lang = cls.replace('language-', '');
+                });
+            }
+
+            // 備案：如果 code 上沒寫，有時候會寫在父層 pre 上
+            if (!lang && element) {
+                const preClasses = element.classList;
+                preClasses.forEach(cls => {
+                    if (['sl-block-content'].includes(cls)) return;
+                    lang = cls.replace('language-', '');
+                });
+            }
+            const copyBtn = element.querySelector('.copy-code-to-clipboard');
+
+            if (copyBtn) {
+                const rawAttr = copyBtn.getAttribute('data-code-to-copy');
+                if (rawAttr) {
+                    // 利用瀏覽器原生的 textarea 解析能力
+                    const decoder = document.createElement('textarea');
+                    decoder.innerHTML = rawAttr;
+                    content = decoder.value;
                 }
-            });
-            // 備用方案
-            if (!lang) lang = codeEl.getAttribute('data-language') || '';
+            }
+
+            console.log(content, codeEl)
+
+            // Fallback：如果沒有複製按鈕，才使用之前的 Regex 暴力解析法
+            if (!content) {
+                content = getCodeTextByRegex(codeEl as HTMLElement);
+            }
 
             blocks.push({
                 type: 'code',
-                content: getCodeTextByRegex(codeEl as HTMLElement),
+                content: content,
                 lang
             });
             return;

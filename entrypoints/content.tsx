@@ -27,18 +27,21 @@ export default defineContentScript({
 
     browser.runtime.onMessage.addListener((message, sender, sendResponse) => {
       if (message.type === 'GET_SLIDES_DATA') {
-        // 1. 執行爬蟲 (直接重用你原本寫好的函式！)
         const rawSlides = extractSlides();
 
-        // 2. 整理一下資料 (只回傳需要的欄位以節省傳輸)
+        // 2. 整理一下資料
         const exportData = rawSlides.map(s => ({
+          // 基礎資訊
+          h: s.h,
+          v: s.v,
           slideLabel: `${s.h}-${s.v}`,
           title: s.title,
-          content: s.content,
-          codeLang: s.codeLang
+
+          blocks: s.blocks,
+
+          content: s.searchContent
         }));
 
-        // 3. 回傳給 Popup
         sendResponse({ title: document.title, slides: exportData });
       }
     });
