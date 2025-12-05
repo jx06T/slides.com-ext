@@ -17,7 +17,7 @@ export default function App() {
                     <LayoutTemplate className="w-5 h-5 text-purple-600" />
                     Slides Tools
                 </h1>
-                <button 
+                <button
                     onClick={() => browser.runtime.sendMessage({ type: 'OPEN_DASHBOARD' })}
                     className="p-1.5 hover:bg-slate-100 rounded-full text-slate-400 hover:text-purple-600 transition-colors"
                     title="Manage Dashboard"
@@ -28,7 +28,7 @@ export default function App() {
 
             {/* Content */}
             <div className="p-4 space-y-4">
-                
+
                 {/* 狀態顯示 */}
                 {/* <div className="text-xs text-slate-500 bg-slate-100 p-3 rounded-lg border border-slate-200">
                    當前功能僅在 Slides 簡報頁面有效。
@@ -37,7 +37,7 @@ export default function App() {
                 {/* 匯出按鈕區 */}
                 <div className="space-y-2">
                     <h2 className="text-sm font-semibold text-slate-700">Actions</h2>
-                    
+
                     <button
                         onClick={exportMarkdown}
                         disabled={isExporting}
@@ -66,7 +66,7 @@ export default function App() {
             {/* Footer */}
             <div className="px-4 py-2 bg-slate-50 border-t border-slate-200 text-[10px] text-center text-slate-400">
                 {/* WXT Extension v0.1.0 */}
-                <a className=' text-sm' href="https://github.com/jx06T/slides.com-ext" target='_blank'>1.0.1 - jx06T</a>
+                <a className=' text-sm' href="https://github.com/jx06T/slides.com-ext" target='_blank'>1.0.2 - jx06T</a>
             </div>
         </div>
     );

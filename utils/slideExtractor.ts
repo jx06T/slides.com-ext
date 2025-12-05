@@ -58,6 +58,10 @@ function parseSlideElement(el: HTMLElement, h: number, v: number): SlideIndex {
     contentNodes.forEach(node => {
         const element = node as HTMLElement;
 
+        if (element.querySelectorAll('.sl-block-content').length > 0) {
+            return;
+        }
+
         // A. 處理程式碼 (Code)
         const codeEl = element.querySelector('pre code, pre');
         if (codeEl) {
@@ -78,28 +82,15 @@ function parseSlideElement(el: HTMLElement, h: number, v: number): SlideIndex {
             }
 
             // 備案：如果 code 上沒寫，有時候會寫在父層 pre 上
-            if (!lang && element) {
-                const preClasses = element.classList;
+            if (!lang && codeEl) {
+                const preClasses = codeEl.classList;
                 preClasses.forEach(cls => {
                     if (['sl-block-content'].includes(cls)) return;
                     lang = cls.replace('language-', '');
                 });
             }
-            const copyBtn = element.querySelector('.copy-code-to-clipboard');
 
-            if (copyBtn) {
-                const rawAttr = copyBtn.getAttribute('data-code-to-copy');
-                if (rawAttr) {
-                    // 利用瀏覽器原生的 textarea 解析能力
-                    const decoder = document.createElement('textarea');
-                    decoder.innerHTML = rawAttr;
-                    content = decoder.value;
-                }
-            }
 
-            console.log(content, codeEl)
-
-            // Fallback：如果沒有複製按鈕，才使用之前的 Regex 暴力解析法
             if (!content) {
                 content = getCodeTextByRegex(codeEl as HTMLElement);
             }
@@ -109,6 +100,7 @@ function parseSlideElement(el: HTMLElement, h: number, v: number): SlideIndex {
                 content: content,
                 lang
             });
+            // console.log(content,codeEl,lang)
             return;
         }
 
@@ -140,6 +132,11 @@ function parseSlideElement(el: HTMLElement, h: number, v: number): SlideIndex {
                 content: headerEl.textContent?.trim() || '',
                 level
             });
+
+            // if ((headerEl.textContent?.trim() || '').includes("簡介") || (headerEl.textContent?.trim() || '').includes("行內")) {
+            //     console.log(element);
+            // }
+
             return;
         }
 
@@ -152,6 +149,10 @@ function parseSlideElement(el: HTMLElement, h: number, v: number): SlideIndex {
                 content: text
             });
         }
+
+        // if (text.includes("簡介") || text.includes("行內")) {
+        //     console.log(element);
+        // }
     });
 
     // 3. 如果沒抓到標題，試著從第一個 Header block 拿，或是用第一段文字
