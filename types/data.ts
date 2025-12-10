@@ -25,13 +25,15 @@ export type SearchResultItem =
     | (Bookmark & { source: 'bookmark' }); // 收藏資料 (自帶 presentationTitle)
 
 
-export type BlockType = 'text' | 'code' | 'list' | 'header';
+export type BlockType = 'text' | 'code' | 'list' | 'header' | 'image';
 
 export interface SlideBlock {
     type: BlockType;
     content: string; // 內容
     lang?: string;   // code 專用
     level?: number;  // header 專用 (h1~h6)
+    src?: string;    // 新增：圖片網址
+    alt?: string;
 }
 
 export interface SlideIndex {

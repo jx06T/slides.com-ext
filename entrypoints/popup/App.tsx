@@ -66,7 +66,7 @@ export default function App() {
             {/* Footer */}
             <div className="px-4 py-2 bg-slate-50 border-t border-slate-200 text-[10px] text-center text-slate-400">
                 {/* WXT Extension v0.1.0 */}
-                <a className=' text-sm' href="https://github.com/jx06T/slides.com-ext" target='_blank'>1.0.2 - jx06T</a>
+                <a className=' text-sm' href="https://github.com/jx06T/slides.com-ext" target='_blank'>1.0.3 - jx06T</a>
             </div>
         </div>
     );

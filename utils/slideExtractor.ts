@@ -73,7 +73,7 @@ function parseSlideElement(el: HTMLElement, h: number, v: number): SlideIndex {
             if (codeCodeEl) {
                 codeCodeEl.classList.forEach(cls => {
                     // 排除 highlight.js 基礎 class 和區塊 class
-                    if (['hljs', 'sl-block-content', 'notranslate'].includes(cls)) return;
+                    if (['hljs', 'has-highlights', 'sl-block-content', 'notranslate'].includes(cls)) return;
 
                     // 剩下的通常就是語言 (如 "xml", "javascript", "python")
                     // 有些會帶前綴 "language-"
@@ -139,6 +139,27 @@ function parseSlideElement(el: HTMLElement, h: number, v: number): SlideIndex {
 
             return;
         }
+
+        // D. 處理圖片 (image)
+        const imgEl = element.querySelector('img');
+        if (imgEl) {
+            const src = imgEl.getAttribute('src') || '';
+            const alt = imgEl.getAttribute('alt') || '';
+
+            // 確保有 src 才加入
+            if (src) {
+                blocks.push({
+                    type: 'image',
+                    // 將 alt 放入 content 以便 Fuse 搜尋能索引到圖片描述
+                    content: alt,
+                    src: src,
+                    alt: alt
+                });
+            }
+            // 圖片處理完通常可以直接 return，避免被下方 Text 重複抓取空白內容
+            return;
+        }
+
 
         // D. 處理普通文字 (Text)
         // 排除掉已經被抓出的標題 (避免重複)

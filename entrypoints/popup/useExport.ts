@@ -24,16 +24,18 @@ export function useExport() {
 
             // 2. 轉換成 Reveal.js 標準 Markdown
             let mdContent = '';
-            
+            const sourceUrl = tab.url || 'Unknown URL';
+
             // 為了不干擾 Reveal 解析，前面不要加太多自定義 Header
             // 如果要加 meta info，可以加在 HTML comment 裡
-            mdContent += `<!-- Exported via Slides Extension: ${title} -->\n\n`;
+            mdContent += `<!-- Exported via Slides Power Tools (slides.com-ext)-->\n\n`;
+            mdContent += `<!-- Source: ${sourceUrl} -->\n\n`; 
 
             let prevH = -1;
 
             slides.forEach((slide: any, index: number) => {
                 const currentH = slide.h;
-                
+
                 // 決定分隔符
                 if (index > 0) {
                     if (currentH !== prevH) {
@@ -41,7 +43,7 @@ export function useExport() {
                         mdContent += '\n\n---\n\n';
                     } else {
                         // 垂直切換 (Vertical Slide)
-                        mdContent += '\n\n--\n\n';
+                        mdContent += '\n\n===\n\n';
                     }
                 }
                 prevH = currentH;
@@ -52,7 +54,7 @@ export function useExport() {
                         switch (block.type) {
                             case 'code':
                                 // 程式碼區塊
-                                mdContent += '``` ' + (block.lang || '') + '\n' + block.content + '\n```\n\n';
+                                mdContent += '```' + (block.lang || '') + '\n' + block.content + '\n```\n\n';
                                 break;
                             case 'list':
                                 // 列表 (確保上下有空行)
@@ -61,6 +63,14 @@ export function useExport() {
                             case 'header':
                                 // 標題 (根據 level 加上 #)
                                 mdContent += `${'#'.repeat(block.level || 2)} ${block.content}\n\n`;
+                                break;
+                            case 'image':
+                                // 如果有 src 才輸出
+                                if (block.src) {
+                                    // 優先使用 alt，沒有的話用 content，再沒有就留空
+                                    const altText = block.alt || block.content || '';
+                                    mdContent += `![${altText}](${block.src})\n\n`;
+                                }
                                 break;
                             case 'text':
                             default:
